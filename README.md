@@ -1,66 +1,124 @@
-# Cinema Project
+# 🎬 Cinema Project
 
-A Laravel project featuring an **Admin Dashboard** (Blade) for managing movies and a **Public Versioned JSON API** (`/api/v1`) for mobile app integration.
+A cinema management system built with **Laravel 12**. It includes an authenticated admin dashboard for managing movies, a public API for a mobile app (no login required), and an AI-powered chatbot that answers questions using the site's real movie data.
 
----
+## ✨ Features
 
-## Setup & Running Guide
+### Admin Dashboard (Blade)
+- Login / Register (session-based authentication)
+- Full movie management: create, view, edit, delete
+- Image upload with automatic cleanup of old/removed images
+- Built-in AI Chatbot page
 
-### 1. Storage Link
-Create the symbolic link from `public/storage` to `storage/app/public` so movie posters are publicly accessible:
+### Public API (no authentication — mobile app)
+- Browse all movies
+- View movie details
+- Add / view / remove movies from a personal watchlist, identified by a `device_id` (no login needed)
+
+### AI Chatbot
+- Powered by Google Gemini
+- Answers are grounded in the site's actual movie data (title, description, year, rating) so it won't invent details about movies that don't exist
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend framework | Laravel 12 (PHP 8.2+) |
+| Database | MySQL / SQLite |
+| Frontend | Blade + Tailwind CSS (CDN) |
+| Asset bundling | Vite |
+| AI | Google Gemini API |
+| Testing | Pest |
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/MohammedHaitham007/Cinema_Project.git
+cd Cinema_Project
+```
+
+### 2. Install dependencies
+```bash
+composer install
+npm install
+```
+
+### 3. Environment setup
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+Then open `.env` and configure your database connection. The project supports either:
+
+**Option A — SQLite (simplest, no setup needed):**
+```env
+DB_CONNECTION=sqlite
+```
+Create an empty file at `database/database.sqlite`.
+
+**Option B — MySQL (e.g. via XAMPP):**
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=cinema
+DB_USERNAME=root
+DB_PASSWORD=
+```
+Make sure MySQL is running and a `cinema` database exists.
+
+Also add your Gemini API key for the chatbot to work:
+```env
+GEMINI_API_KEY=your_api_key_here
+```
+
+### 4. Run migrations and seed sample data
+```bash
+php artisan migrate:fresh --seed
+```
+This creates a default admin account (`admin@cinema.com` / `password`) and 10 sample movies.
+
+### 5. Link storage (required for movie images)
 ```bash
 php artisan storage:link
 ```
 
-### 2. Run Migrations & Seed Data
-Run database migrations and seed default data (admin account + 10 sample movies):
+> ⚠️ **Note:** If you run the project with `php artisan serve` on Windows, uploaded images may return a `403 Forbidden` error. This is a known limitation of PHP's built-in development server, which does not follow symbolic links for security reasons. To avoid this, serve the project through **Apache** (e.g. via XAMPP) instead.
+
+### 6. Run the app
 ```bash
-php artisan migrate:fresh --seed
+php artisan serve
+```
+Or place the project under XAMPP's `htdocs` folder and access it through Apache.
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/movies` | List all movies |
+| GET | `/api/movies/{id}` | Get a single movie's details |
+| GET | `/api/watchlist?device_id=...` | Get a device's watchlist |
+| POST | `/api/watchlist` | Add a movie to the watchlist (`device_id`, `movie_id`) |
+| DELETE | `/api/watchlist/{id}` | Remove a movie from the watchlist (by watchlist id or movie id) |
+| POST | `/api/chatbot/send` | Send a message to the chatbot |
+
+## 🗄️ Database Schema
+
+**movies**: `id`, `title`, `description`, `release_year`, `rating`, `image`
+
+**watchlists**: `id`, `device_id`, `movie_id` (foreign key) — identified purely by device, no login required
+
+**users**: standard Laravel authenticatable user (used only for the admin dashboard)
+
+## 🔑 Default Admin Credentials
+
+```
+Email: admin@cinema.com
+Password: password
 ```
 
-### 3. Default Credentials
-- **Admin Dashboard Email:** `admin@cinema.com`
-- **Password:** `password`
+## 📄 License
 
----
-
-## Architecture & Features
-
-### Part 1 — Admin Dashboard (Blade)
-- **Authentication:** Protected under `auth` middleware group. Guests are redirected to `/login`.
-- **Movie Management (CRUD):**
-  - View paginated movies grid at `/movies`.
-  - Create new movie with poster image upload at `/movies/create`.
-  - View movie details at `/movies/{id}`.
-  - Edit existing movie pre-filled with poster preview at `/movies/{id}/edit`. Automatically deletes old poster file from storage when replaced.
-  - Delete movie with image file cleanup from storage.
-- **Validation:** Uses `CreateMovieRequest` and `UpdateMovieRequest` (Image validated as `nullable|image|mimes:jpeg,png,jpg,webp|max:2048`).
-
-### Part 2 — Public Mobile API (Prefix: `/api/v1`)
-No authentication required — users are identified by `device_id`. All responses return consistent JSON: `{ "message": "...", "data": ... }`.
-
-1. **GET `/api/v1/movies`**
-   - List all movies formatted using `MovieResource` with full poster URL (`asset('storage/...')`).
-
-2. **GET `/api/v1/movies/{id}`**
-   - Retrieve single movie details. Returns `404` if movie does not exist.
-
-3. **POST `/api/v1/watchlist`**
-   - Add a movie to a device's watchlist.
-   - **Body:** `{ "device_id": "string", "movie_id": integer }`
-   - Validated via `StoreWatchlistRequest`. Prevents duplicate entries for the same `device_id` + `movie_id`.
-
-4. **GET `/api/v1/watchlist?device_id=...`**
-   - Retrieve all movies in a device's watchlist (returns full movie data).
-   - Requires `device_id` query parameter (returns `422` if missing).
-
-5. **DELETE `/api/v1/watchlist/{id}`**
-   - Remove a movie from a device's watchlist by watchlist ID (or by `device_id` + `movie_id`).
-
----
-
-## Running Tests
-Run the test suite using Pest / PHPUnit:
-```bash
-TERM=dumb php vendor/bin/pest
-```
+This project was built for educational purposes.
